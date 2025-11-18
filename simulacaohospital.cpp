@@ -7,10 +7,13 @@
 #include <windows.h>
 #include "tadfilashospital.h"
 
-/* ========= Fun√ß√µes auxiliares da interface ========= */
+#define LARGURA_TELA 80
+#define ALTURA_TELA  25
 
 void pausa() {
-    printf("\n\nPressione qualquer tecla para continuar...");
+    gotoxy(3, 24);
+    textcolor(LIGHTGRAY);
+    printf("Pressione qualquer tecla para continuar...");
     getch();
 }
 
@@ -26,7 +29,42 @@ void lerLinha(char *dest, int tam) {
     }
 }
 
-/* Converte texto do arquivo para c√≥digo de prioridade */
+/* ========= Moldura e centralizaÁ„o ========= */
+
+void desenhaMoldura(int esquerda, int topo, int direita, int base) {
+    int x, y;
+
+    textcolor(LIGHTCYAN);
+
+    /* Cantos */
+    gotoxy(esquerda, topo);   printf("%c", 201); /* ? */
+    gotoxy(direita,  topo);   printf("%c", 187); /* ? */
+    gotoxy(esquerda, base);   printf("%c", 200); /* ? */
+    gotoxy(direita,  base);   printf("%c", 188); /* ? */
+
+    /* Linhas horizontais */
+    for (x = esquerda + 1; x < direita; x++) {
+        gotoxy(x, topo); printf("%c", 205);  /* ? */
+        gotoxy(x, base); printf("%c", 205);  /* ? */
+    }
+
+    /* Linhas verticais */
+    for (y = topo + 1; y < base; y++) {
+        gotoxy(esquerda, y); printf("%c", 186); /* ? */
+        gotoxy(direita,  y); printf("%c", 186); /* ? */
+    }
+
+    textcolor(WHITE);
+}
+
+void centralizarTexto(int linha, const char *texto) {
+    int col = (LARGURA_TELA - (int)strlen(texto)) / 2;
+    if (col < 1) col = 1;
+    gotoxy(col, linha);
+    printf("%s", texto);
+}
+
+/* Converte texto do arquivo para cÛdigo de prioridade */
 int lerPrioridadeTexto(const char *texto) {
     char copia[20];
     int i;
@@ -59,8 +97,13 @@ void carregarPacientesArquivo(const char *nomeArq,
 
     f = fopen(nomeArq, "r");
     if (f == NULL) {
-        printf("Nao foi possivel abrir o arquivo %s.\n", nomeArq);
-        printf("A simulacao podera ser feita apenas com pacientes cadastrados manualmente.\n");
+        clrscr();
+        desenhaMoldura(2, 1, 79, 24);
+        centralizarTexto(3, "ARQUIVO NAO ENCONTRADO");
+        gotoxy(4, 6);
+        printf("Nao foi possivel abrir o arquivo %s.", nomeArq);
+        gotoxy(4, 8);
+        printf("A simulacao podera ser feita apenas com pacientes cadastrados manualmente.");
         pausa();
         return;
     }
@@ -129,43 +172,46 @@ void carregarPacientesArquivo(const char *nomeArq,
     fclose(f);
 }
 
-/* ========= Visualiza√ß√£o do estado ========= */
+/* ========= VisualizaÁ„o do estado ========= */
 
-void mostrarFilas(FILAS_PRIORIDADE *filas) {
+void mostrarFilas(FILAS_PRIORIDADE *filas, int x, int y) {
     int i;
-    printf("FILAS DE TRIAGEM (por prioridade)\n");
+    gotoxy(x, y++);
+    printf("FILAS DE TRIAGEM (por prioridade)");
     for (i = 0; i < NUM_PRIORIDADES; i++) {
         DESCRITOR_FILA *d = &(filas->fila[i]);
-        printf("  %-9s: %2d paciente(s) aguardando\n",
+        gotoxy(x, y++);
+        printf("  %-9s: %2d paciente(s) aguardando",
                prioridadeToString(i),
                d->qtde);
     }
-    printf("\n");
 }
 
-void mostrarMedicos(LISTA_MEDICOS *lista) {
+void mostrarMedicos(LISTA_MEDICOS *lista, int x, int y) {
     MEDICO *m;
 
     if (lista == NULL || lista->inicio == NULL) {
-        printf("Nao ha medicos/salas cadastrados.\n\n");
+        gotoxy(x, y);
+        printf("Nao ha medicos/salas cadastrados.");
         return;
     }
 
-    printf("MEDICOS / SALAS\n");
+    gotoxy(x, y++);
+    printf("MEDICOS / SALAS");
     m = lista->inicio;
     while (m != NULL) {
+        gotoxy(x, y++);
         printf("  Medico %d - ", m->id);
         if (m->ocupado && m->atual != NULL) {
-            printf("Ocupado com %s (%s), restante: %d\n",
+            printf("Ocupado com %s (%s), restante: %d",
                    m->atual->nome,
                    prioridadeToString(m->atual->prioridade),
                    m->tempoRestante);
         } else {
-            printf("Livre\n");
+            printf("Livre");
         }
         m = m->prox;
     }
-    printf("\n");
 }
 
 void mostrarEstatisticasFinais(int totalAtendidos[NUM_PRIORIDADES],
@@ -177,49 +223,58 @@ void mostrarEstatisticasFinais(int totalAtendidos[NUM_PRIORIDADES],
     int emTratamento = 0;
     MEDICO *m;
 
-    printf("\n===== ESTATISTICAS FINAIS =====\n\n");
+    clrscr();
+    desenhaMoldura(2, 1, 79, 24);
+    centralizarTexto(3, "RELATORIO FINAL DA SIMULACAO");
 
-    printf("Pacientes tratados por classificacao de risco:\n");
+    gotoxy(4, 5);
+    printf("Pacientes tratados por classificacao de risco:");
     for (i = 0; i < NUM_PRIORIDADES; i++) {
-        printf("  %-9s: %d paciente(s)\n",
+        gotoxy(4, 6 + i);
+        printf("  %-9s: %d paciente(s)",
                prioridadeToString(i),
                totalAtendidos[i]);
     }
-    printf("\n");
 
-    printf("Tempo medio de espera por classificacao (unidades de tempo):\n");
+    gotoxy(4, 10);
+    printf("Tempo medio de espera por classificacao (unidades de tempo):");
     for (i = 0; i < NUM_PRIORIDADES; i++) {
         double media = 0.0;
         if (totalAtendidos[i] > 0) {
             media = (double)somaEspera[i] / (double)totalAtendidos[i];
         }
-        printf("  %-9s: %.2f\n",
+        gotoxy(4, 11 + i);
+        printf("  %-9s: %.2f",
                prioridadeToString(i),
                media);
     }
-    printf("\n");
 
     for (i = 0; i < NUM_PRIORIDADES; i++) {
         restantesFila += filas->fila[i].qtde;
     }
-    printf("Pacientes restantes na fila: %d\n", restantesFila);
+    gotoxy(4, 15);
+    printf("Pacientes restantes na fila: %d", restantesFila);
 
     m = lista->inicio;
     while (m != NULL) {
         if (m->ocupado && m->atual != NULL) emTratamento++;
         m = m->prox;
     }
-    printf("Pacientes ainda em tratamento: %d\n\n", emTratamento);
+    gotoxy(4, 16);
+    printf("Pacientes ainda em tratamento: %d", emTratamento);
 
     if (lista != NULL && lista->inicio != NULL) {
-        printf("Pacientes tratados por cada Medico/Sala:\n");
+        int linha = 18;
+        gotoxy(4, linha++);
+        printf("Pacientes tratados por cada Medico/Sala:");
         m = lista->inicio;
         while (m != NULL) {
             int totalMedico = 0;
             for (i = 0; i < NUM_PRIORIDADES; i++) {
                 totalMedico += m->atendidosPorPrioridade[i];
             }
-            printf("  Medico %d: %d pacientes (V=%d, A=%d, Vd=%d)\n",
+            gotoxy(4, linha++);
+            printf("  Medico %d: %d pacientes (V=%d, A=%d, Vd=%d)",
                    m->id,
                    totalMedico,
                    m->atendidosPorPrioridade[PRIO_VERMELHO],
@@ -227,8 +282,9 @@ void mostrarEstatisticasFinais(int totalAtendidos[NUM_PRIORIDADES],
                    m->atendidosPorPrioridade[PRIO_VERDE]);
             m = m->prox;
         }
-        printf("\n");
     }
+
+    pausa();
 }
 
 /* ========= Cadastro manual de paciente ========= */
@@ -246,11 +302,18 @@ void cadastrarPacienteManual(FILAS_PRIORIDADE *filas,
     if (filas == NULL || proxId == NULL) return;
 
     clrscr();
-    printf("CADASTRO MANUAL DE PACIENTE\n\n");
-    printf("Classificacao de risco:\n");
-    printf("  1 - Vermelho (emergencia)\n");
-    printf("  2 - Amarelo  (urgencia)\n");
-    printf("  3 - Verde    (nao urgente)\n");
+    desenhaMoldura(2, 1, 79, 24);
+    centralizarTexto(3, "CADASTRO MANUAL DE PACIENTE");
+
+    gotoxy(4, 6);
+    printf("Classificacao de risco:");
+    gotoxy(4, 7);
+    printf("  1 - Vermelho (emergencia)");
+    gotoxy(4, 8);
+    printf("  2 - Amarelo  (urgencia)");
+    gotoxy(4, 9);
+    printf("  3 - Verde    (nao urgente)");
+    gotoxy(4, 11);
     printf("Opcao: ");
     scanf("%d", &opc);
     fflush(stdin);
@@ -259,14 +322,18 @@ void cadastrarPacienteManual(FILAS_PRIORIDADE *filas,
     else if (opc == 2) prioridade = PRIO_AMARELO;
     else prioridade = PRIO_VERDE;
 
+    gotoxy(4, 13);
     printf("Tempo de tratamento estimado (unidades de tempo): ");
     scanf("%d", &tempo);
     fflush(stdin);
 
+    gotoxy(4, 15);
     printf("Nome do paciente: ");
     lerLinha(nome, TAM_NOME);
+    gotoxy(4, 16);
     printf("Queixa principal: ");
     lerLinha(queixa, TAM_QUEIXA);
+    gotoxy(4, 17);
     printf("Data de chegada (texto livre): ");
     lerLinha(data, TAM_DATA);
 
@@ -281,11 +348,12 @@ void cadastrarPacienteManual(FILAS_PRIORIDADE *filas,
     enfileirarPaciente(filas, p);
     (*proxId)++;
 
-    printf("\nPaciente inserido na fila %s!\n", prioridadeToString(prioridade));
+    gotoxy(4, 19);
+    printf("Paciente inserido na fila %s!", prioridadeToString(prioridade));
     pausa();
 }
 
-/* ========= Configura√ß√£o dos m√©dicos ========= */
+/* ========= ConfiguraÁ„o dos mÈdicos ========= */
 
 void configurarMedicos(LISTA_MEDICOS *lista) {
     int qtd, i;
@@ -294,7 +362,10 @@ void configurarMedicos(LISTA_MEDICOS *lista) {
     inicializarListaMedicos(lista);
 
     clrscr();
-    printf("CONFIGURACAO INICIAL\n\n");
+    desenhaMoldura(2, 1, 79, 24);
+    centralizarTexto(3, "CONFIGURACAO INICIAL DE MEDICOS");
+
+    gotoxy(4, 6);
     printf("Quantidade de Medicos/Salas disponiveis: ");
     scanf("%d", &qtd);
     fflush(stdin);
@@ -306,7 +377,7 @@ void configurarMedicos(LISTA_MEDICOS *lista) {
     }
 }
 
-/* ========= Loop principal da simula√ß√£o ========= */
+/* ========= Loop principal da simulaÁ„o ========= */
 
 void executarSimulacao() {
     FILAS_PRIORIDADE filas;
@@ -319,6 +390,7 @@ void executarSimulacao() {
     int duracaoMax;
     int opc;
     int tempoAtual = 0;
+    int modoAvanco; /* 1 = manual, 2 = automatico */
 
     srand((unsigned int)time(NULL));
 
@@ -327,14 +399,35 @@ void executarSimulacao() {
 
     configurarMedicos(&listaMedicos);
 
-    printf("\nDuracao maxima da simulacao (em unidades de tempo): ");
+    clrscr();
+    desenhaMoldura(2, 1, 79, 24);
+    centralizarTexto(3, "CONFIGURACAO DA SIMULACAO");
+
+    gotoxy(4, 6);
+    printf("Duracao maxima da simulacao (em unidades de tempo): ");
     scanf("%d", &duracaoMax);
     fflush(stdin);
     if (duracaoMax <= 0) duracaoMax = 50;
 
-    printf("\nDeseja carregar pacientes a partir de arquivo texto?\n");
-    printf("  1 - Sim (arquivo pacientes.txt)\n");
-    printf("  2 - Nao (vou cadastrar manualmente)\n");
+    gotoxy(4, 8);
+    printf("Modo de avancar o tempo:");
+    gotoxy(4, 9);
+    printf("  1 - Manual (ENTER para avancar)");
+    gotoxy(4, 10);
+    printf("  2 - Automatico (1 segundo por passo)");
+    gotoxy(4, 12);
+    printf("Opcao: ");
+    scanf("%d", &modoAvanco);
+    fflush(stdin);
+    if (modoAvanco != 2) modoAvanco = 1;
+
+    gotoxy(4, 14);
+    printf("Deseja carregar pacientes a partir de arquivo texto?");
+    gotoxy(4, 15);
+    printf("  1 - Sim (arquivo pacientes.txt)");
+    gotoxy(4, 16);
+    printf("  2 - Nao (vou cadastrar manualmente)");
+    gotoxy(4, 18);
     printf("Opcao: ");
     scanf("%d", &opc);
     fflush(stdin);
@@ -343,6 +436,7 @@ void executarSimulacao() {
         carregarPacientesArquivo("pacientes.txt", &filas, &proxIdPaciente);
     }
 
+    /* Loop principal */
     while (1) {
         /* Avanca uma unidade de tempo de atendimento */
         avancarTempo(&listaMedicos, totalAtendidos, somaEspera);
@@ -352,27 +446,42 @@ void executarSimulacao() {
 
         /* Interface da simulacao */
         clrscr();
-        textcolor(LIGHTCYAN);
-        printf("SIMULACAO DE PRONTO-SOCORRO - GESTAO HOSPITALAR\n");
-        printf("Tempo atual: %d   |   Duracao maxima: %d\n\n", tempoAtual, duracaoMax);
+        desenhaMoldura(2, 1, 79, 24);
+        centralizarTexto(2, "SIMULACAO DE PRONTO-SOCORRO - GESTAO HOSPITALAR");
 
-        textcolor(WHITE);
-        mostrarFilas(&filas);
-        mostrarMedicos(&listaMedicos);
+        {
+            char linhaTempo[80];
+            sprintf(linhaTempo,
+                    "Tempo atual: %d   |   Duracao maxima: %d",
+                    tempoAtual, duracaoMax);
+            centralizarTexto(4, linhaTempo);
+        }
 
-        printf("Opcoes:\n");
-        printf("  [ENTER] - Avancar 1 unidade de tempo\n");
-        printf("  [C]     - Cadastrar novo paciente manualmente\n");
-        printf("  [F]     - Finalizar simulacao agora\n\n");
-        printf("Escolha: ");
+        /* Mostrar filas e medicos dentro da moldura */
+        mostrarFilas(&filas, 4, 6);
+        mostrarMedicos(&listaMedicos, 4, 11);
 
-        int ch = getch();
-        if (ch == 13) { /* ENTER */
+        if (modoAvanco == 1) {
+            /* Modo manual */
+            centralizarTexto(20,
+                "[ENTER] - Avancar  |  [C] - Cadastrar paciente  |  [F] - Finalizar");
+            gotoxy(4, 22);
+            printf("Escolha: ");
+
+            int ch = getch();
+            if (ch == 13) { /* ENTER */
+                tempoAtual++;
+            } else if (ch == 'c' || ch == 'C') {
+                cadastrarPacienteManual(&filas, &proxIdPaciente, tempoAtual);
+            } else if (ch == 'f' || ch == 'F') {
+                break;
+            }
+        } else {
+            /* Modo automatico */
+            centralizarTexto(20,
+                "Modo automatico: simulacao em andamento...");
+            Sleep(1000); /* 1 segundo por passo */
             tempoAtual++;
-        } else if (ch == 'c' || ch == 'C') {
-            cadastrarPacienteManual(&filas, &proxIdPaciente, tempoAtual);
-        } else if (ch == 'f' || ch == 'F') {
-            break;
         }
 
         if (tempoAtual >= duracaoMax) {
@@ -385,17 +494,15 @@ void executarSimulacao() {
         }
     }
 
-    clrscr();
     mostrarEstatisticasFinais(totalAtendidos, somaEspera, &filas, &listaMedicos);
 
     /* Libera memoria dinamica (apenas delete) */
     limparFilas(&filas);
     limparListaMedicos(&listaMedicos);
-
-    pausa();
 }
 
 int main() {
     executarSimulacao();
     return 0;
 }
+

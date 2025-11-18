@@ -105,7 +105,7 @@ PACIENTE *criarPaciente(int id,
     p->tempoChegada = tempoChegada;
     p->tempoInicio = -1;
     p->prox = NULL;
-
+    
     return p;
 }
 

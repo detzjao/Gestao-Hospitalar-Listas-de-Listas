@@ -1,0 +1,10 @@
+Vermelho,15,Ana Souza,Parada respiratoria,01/11/2025
+Amarelo,10,Joao Silva,Fratura no braco,01/11/2025
+Verde,5,Carla Mendes,Dor de cabeca leve,01/11/2025
+Vermelho,20,Pedro Santos,Infarto agudo,01/11/2025
+Amarelo,12,Mariana Costa,Crise asmatica,01/11/2025
+Verde,7,Rafael Lima,Febre baixa,01/11/2025
+Amarelo,9,Lucas Pereira,Corte profundo na mao,01/11/2025
+Vermelho,18,Fernanda Rocha,Acidente de transito,01/11/2025
+Verde,4,Beatriz Souza,Revisao pos-operatoria,01/11/2025
+Amarelo,11,Diego Almeida,Dor abdominal intensa,01/11/2025
